@@ -62,12 +62,18 @@ async function startPiperDubbing() {
     const videoId = new URLSearchParams(window.location.search).get('v');
     if (!videoId) return;
 
-    console.log('Iniciando Dublagem Piper Local...');
+    console.log('[Piper] Iniciando processo para o vídeo:', videoId);
     
     try {
-        // 1. Capturar legendas (Transcript)
+        // 1. Capturar legendas
         const events = await fetchTranscript(videoId);
-        if (!events) { alert('Legendas não encontradas para este vídeo.'); return; }
+        if (!events) { 
+            console.error('[Piper] Nenhuma legenda encontrada.');
+            alert('Legendas não encontradas para este vídeo.'); 
+            return; 
+        }
+
+        console.log(`[Piper] Capturadas ${events.length} entradas de legenda.`);
 
         // 2. Humanizar e preparar segmentos
         const segments = events
@@ -80,15 +86,21 @@ async function startPiperDubbing() {
             }))
             .filter(s => s.text.length > 1);
 
+        console.log(`[Piper] Enviando ${segments.length} segmentos para o servidor local...`);
+
         // 3. Enviar para o servidor local
         const response = await fetch(`${settings.ttsServerUrl}/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ segments: segments.slice(0, 50) }) // Limitamos os primeiros 50 para teste rápido
+            body: JSON.stringify({ segments: segments }) // Enviando tudo
         });
+
+        if (!response.ok) throw new Error('Servidor local não respondeu corretamente.');
 
         const data = await response.json();
         if (data.error) throw new Error(data.error);
+
+        console.log(`[Piper] Recebidos ${data.audios.length} áudios gerados.`);
 
         // 4. Mapear áudios recebidos
         data.audios.forEach(audio => {
@@ -100,11 +112,12 @@ async function startPiperDubbing() {
         
         // 5. Iniciar Sincronização
         setupSync();
-        alert('Dublagem Piper pronta e sincronizada!');
+        console.log('[Piper] Dublagem pronta e sincronizada.');
+        alert('Dublagem Piper pronta! O áudio começará a tocar automaticamente acompanhando o vídeo.');
 
     } catch (e) {
-        console.error('Erro na dublagem Piper:', e);
-        alert('Erro ao conectar com servidor local Piper. Certifique-se de que o servidor Node.js está rodando na porta 3001.');
+        console.error('[Piper] Erro crítico:', e);
+        alert('Erro ao processar dublagem: ' + e.message);
     }
 }
 
@@ -205,15 +218,52 @@ async function activateNativeSubtitles(mode, showNotification = false) {
 
 async function fetchTranscript(videoId) {
     try {
-        const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-        const html = await response.text();
-        const captionsMatch = html.match(/"captionTracks":\[(.*?)\]/);
-        if (!captionsMatch) return null;
-        const captionTracks = JSON.parse(`[${captionsMatch[1]}]`);
-        const track = captionTracks.find(t => t.languageCode === 'en') || captionTracks.find(t => t.languageCode === 'pt') || captionTracks[0];
-        const subResponse = await fetch(track.baseUrl + '&fmt=json3');
-        return (await subResponse.json()).events;
-    } catch (e) { return null; }
+        console.log('Buscando transcrição para:', videoId);
+        
+        // 1. Tentar pegar do objeto interno do YouTube na página
+        let playerResponse = await new Promise(resolve => {
+            const script = document.createElement('script');
+            script.textContent = 'document.dispatchEvent(new CustomEvent("getYtData", {detail: window.ytInitialPlayerResponse}))';
+            document.addEventListener('getYtData', (e) => {
+                resolve(e.detail);
+                script.remove();
+            }, { once: true });
+            document.head.appendChild(script);
+        });
+
+        if (!playerResponse || !playerResponse.captions) {
+            // 2. Fallback: Fetch manual se o objeto não estiver pronto
+            const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+            const html = await response.text();
+            const captionsMatch = html.match(/"captionTracks":\[(.*?)\]/);
+            if (captionsMatch) {
+                const tracks = JSON.parse(`[${captionsMatch[1]}]`);
+                return await fetchSubtitlesFromTrack(tracks);
+            }
+            return null;
+        }
+
+        const tracks = playerResponse.captions.playerCaptionsTracklistRenderer.captionTracks;
+        return await fetchSubtitlesFromTrack(tracks);
+    } catch (e) {
+        console.error('Erro ao buscar transcrição:', e);
+        return null;
+    }
+}
+
+async function fetchSubtitlesFromTrack(tracks) {
+    if (!tracks || tracks.length === 0) return null;
+    
+    // Prioridade: PT-BR > PT > EN > Primeiro disponível
+    const track = tracks.find(t => t.languageCode === 'pt-BR') || 
+                  tracks.find(t => t.languageCode === 'pt') || 
+                  tracks.find(t => t.languageCode === 'en') || 
+                  tracks[0];
+                  
+    console.log('Usando trilha de legenda:', track.name.simpleText || track.languageCode);
+    const subResponse = await fetch(track.baseUrl + '&fmt=json3');
+    const data = await subResponse.json();
+    return data.events;
 }
 
 function updateNativeStyles() {

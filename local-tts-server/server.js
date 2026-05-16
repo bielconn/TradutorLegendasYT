@@ -25,6 +25,17 @@ if (!fs.existsSync(PIPER_CONFIG.outputDir)) {
     fs.mkdirSync(PIPER_CONFIG.outputDir);
 }
 
+// Teste de Sanidade: Verificar se o Piper está no PATH
+exec(`${PIPER_CONFIG.piperBinary} --version`, (err, stdout) => {
+    if (err) {
+        console.warn('⚠️ AVISO: Comando "piper" não encontrado no seu sistema.');
+        console.warn('Certifique-se de que rodou: pip install piper-tts');
+        console.warn('Se o erro persistir, coloque o caminho completo do piper.exe no server.js');
+    } else {
+        console.log('✅ Piper TTS detectado com sucesso!');
+    }
+});
+
 app.post('/generate', async (req, res) => {
     const { segments } = req.body;
     
@@ -32,7 +43,7 @@ app.post('/generate', async (req, res) => {
         return res.status(400).json({ error: 'Segmentos inválidos' });
     }
 
-    console.log(`Recebido pedido para gerar ${segments.length} áudios...`);
+    console.log(`\n--- Nova geração iniciada: ${segments.length} segmentos ---`);
 
     try {
         const results = [];
@@ -41,17 +52,30 @@ app.post('/generate', async (req, res) => {
             const fileName = `${segment.id}.wav`;
             const filePath = path.join(PIPER_CONFIG.outputDir, fileName);
             
-            // Limpeza básica do texto para o shell
-            const cleanText = segment.text.replace(/"/g, '').replace(/`/g, '');
+            // Pular se o áudio já existir (cache)
+            if (fs.existsSync(filePath)) {
+                results.push({
+                    id: segment.id,
+                    audioUrl: `http://localhost:${PORT}/audios/${fileName}`,
+                    start: segment.start,
+                    end: segment.end
+                });
+                continue;
+            }
+
+            // Limpeza do texto
+            const cleanText = segment.text.replace(/["\\]/g, ''); 
             
-            // Comando Piper
-            // echo "texto" | piper --model model.onnx --output_file output.wav
-            const command = `echo "${cleanText}" | ${PIPER_CONFIG.piperBinary} --model "${PIPER_CONFIG.modelPath}" --output_file "${filePath}"`;
+            // Comando mais seguro para Windows
+            // Usando aspas duplas no texto e escapando se necessário
+            const command = `echo ${cleanText} | ${PIPER_CONFIG.piperBinary} --model "${PIPER_CONFIG.modelPath}" --output_file "${filePath}"`;
             
+            console.log(`Gerando [${segment.id}]: "${cleanText.substring(0, 30)}..."`);
+
             await new Promise((resolve, reject) => {
                 exec(command, (error, stdout, stderr) => {
                     if (error) {
-                        console.error(`Erro ao gerar áudio ${segment.id}:`, stderr);
+                        console.error(`❌ Erro no Piper para [${segment.id}]:`, stderr);
                         reject(error);
                     } else {
                         resolve();
@@ -67,10 +91,11 @@ app.post('/generate', async (req, res) => {
             });
         }
 
+        console.log('✅ Todos os áudios gerados com sucesso!');
         res.json({ audios: results });
     } catch (error) {
-        console.error('Erro geral no servidor TTS:', error);
-        res.status(500).json({ error: 'Falha ao gerar dublagem local. Verifique se o Piper está instalado e o modelo configurado.' });
+        console.error('❌ Falha crítica na geração:', error);
+        res.status(500).json({ error: 'Erro ao gerar áudio com Piper. Verifique o console do servidor.' });
     }
 });
 
