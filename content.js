@@ -32,9 +32,16 @@ function injectButtons() {
     container.id = 'gemini-trans-buttons';
     container.style.cssText = `position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; gap: 10px; pointer-events: auto;`;
 
-    const btnDub = createButton('🎙️ Dublar Áudio', 'icon-dub');
+    const btnVideo = createButton('<span style="background:#fff;color:#000;padding:0 2px;border-radius:2px;font-size:10px;margin-right:4px;">BR</span> Traduzir Vídeo');
+    const btnAudio = createButton('🎧 Traduzir Áudio');
+    const btnDub = createButton('🎙️ Dublar Áudio (Piper)');
+
+    btnVideo.onclick = () => activateNativeSubtitles('video', false);
+    btnAudio.onclick = () => activateNativeSubtitles('audio', false);
     btnDub.onclick = () => startPiperDubbing();
 
+    container.appendChild(btnVideo);
+    container.appendChild(btnAudio);
     container.appendChild(btnDub);
     player.appendChild(container);
 }
@@ -157,6 +164,45 @@ function playAudio(audioData) {
     };
 }
 
+async function activateNativeSubtitles(mode, showNotification = false) {
+    console.log('Iniciando automação de legendas...');
+    const video = document.querySelector('video');
+    if (video) {
+        const subBtn = document.querySelector('.ytp-subtitles-button');
+        if (subBtn && subBtn.getAttribute('aria-pressed') === 'false') {
+            subBtn.click();
+        }
+    }
+    const settingsBtn = document.querySelector('.ytp-settings-button');
+    if (!settingsBtn) return;
+    settingsBtn.click();
+    await sleep(300);
+    const menuItems = document.querySelectorAll('.ytp-menuitem');
+    let subMenu = Array.from(menuItems).find(i => i.textContent.includes('Legendas') || i.textContent.includes('Subtitles'));
+    if (subMenu) {
+        subMenu.click();
+        await sleep(300);
+        const subOptions = document.querySelectorAll('.ytp-menuitem');
+        let ptOption = Array.from(subOptions).find(i => i.textContent.includes('Português'));
+        if (ptOption) {
+            ptOption.click();
+            if (showNotification) alert('Legendas em Português ativadas!');
+        } else {
+            let autoTrans = Array.from(subOptions).find(i => i.textContent.includes('Tradução automática') || i.textContent.includes('Auto-translate'));
+            if (autoTrans) {
+                autoTrans.click();
+                await sleep(500);
+                const langOptions = document.querySelectorAll('.ytp-menuitem');
+                let ptAuto = Array.from(langOptions).find(i => i.textContent.trim() === 'Português');
+                if (ptAuto) ptAuto.click();
+            }
+        }
+    }
+    if (document.querySelector('.ytp-settings-menu[style*="display: block"]')) {
+        settingsBtn.click();
+    }
+}
+
 async function fetchTranscript(videoId) {
     try {
         const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
@@ -208,3 +254,4 @@ new MutationObserver(() => {
         if (location.href.includes('watch')) setTimeout(injectButtons, 2000);
     }
 }).observe(document, { subtree: true, childList: true });
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
