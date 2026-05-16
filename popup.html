@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradutor PT-BR</title>
+    <link rel="stylesheet" href="popup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tradutor PT-BR</h1>
+            <p class="subtitle">Legendas rápidas e fáceis</p>
+        </header>
+
+        <section class="toggle-section">
+            <label for="show-buttons">Exibir Botão no Vídeo</label>
+            <label class="switch">
+                <input type="checkbox" id="show-buttons" checked>
+                <span class="slider round"></span>
+            </label>
+        </section>
+
+        <section class="design-presets">
+            <h3>Design da Legenda</h3>
+            <div class="preset-buttons">
+                <button id="preset-viral" class="preset-btn active">Viral</button>
+                <button id="preset-classico" class="preset-btn">Clássico</button>
+                <button id="preset-filme" class="preset-btn">Filme</button>
+            </div>
+        </section>
+
+        <section class="controls-grid">
+            <div class="control-item color-item">
+                <label>Cor Fonte</label>
+                <input type="color" id="font-color" value="#ffff00">
+            </div>
+
+            <div class="control-item">
+                <label>Fonte</label>
+                <select id="font-family">
+                    <option value="Roboto">Roboto</option>
+                    <option value="Outfit">Outfit</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Impact">Impact</option>
+                </select>
+            </div>
+
+            <div class="control-item">
+                <label>Tamanho <span id="val-font-size">37</span></label>
+                <input type="range" id="font-size" min="10" max="100" value="37">
+            </div>
+
+            <div class="control-item">
+                <label>Altura da Linha <span id="val-line-height">1.5</span></label>
+                <input type="range" id="line-height" min="1" max="3" step="0.1" value="1.5">
+            </div>
+
+            <div class="control-item">
+                <label>Espaçamento Letras <span id="val-letter-spacing">0.5</span></label>
+                <input type="range" id="letter-spacing" min="-2" max="10" step="0.1" value="0.5">
+            </div>
+
+            <div class="control-item">
+                <label>Posição Vertical (%) <span id="val-vertical-pos">10</span></label>
+                <input type="range" id="vertical-pos" min="0" max="100" value="10">
+            </div>
+
+            <div class="control-item">
+                <label>Espessura do Traçado <span id="val-stroke-width">3</span></label>
+                <input type="range" id="stroke-width" min="0" max="10" value="3">
+            </div>
+
+            <div class="control-item">
+                <label>Sombra X <span id="val-shadow-x">2</span></label>
+                <input type="range" id="shadow-x" min="-10" max="10" value="2">
+            </div>
+
+            <div class="control-item">
+                <label>Sombra Y <span id="val-shadow-y">4</span></label>
+                <input type="range" id="shadow-y" min="-10" max="10" value="4">
+            </div>
+
+            <div class="control-item">
+                <label>Desfoque Sombra Principal <span id="val-shadow-blur">0</span></label>
+                <input type="range" id="shadow-blur" min="0" max="20" value="0">
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="control-item">
+                <label>Glow Traseiro (Tamanho) <span id="val-glow-size">11</span></label>
+                <input type="range" id="glow-size" min="0" max="50" value="11">
+            </div>
+
+            <div class="control-item">
+                <label>Glow Traseiro (Opacidade) <span id="val-glow-opacity">100</span></label>
+                <input type="range" id="glow-opacity" min="0" max="100" value="100">
+            </div>
+        </section>
+
+        <section class="api-section">
+            <h3>YouTube Subtitles Generator</h3>
+            <label>Chave da API Gemini (Gemini API Key)</label>
+            <input type="password" id="gemini-key" placeholder="Insira sua API Key...">
+            <button id="generate-btn" class="primary-btn">
+                <span>✨</span> Gerar Legendas
+            </button>
+        </section>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

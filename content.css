@@ -1,0 +1,17 @@
+/* Custom fonts if needed */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
+
+.gemini-trans-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.gemini-trans-btn:active {
+    transform: translateY(0);
+}
+
+#gemini-subtitle-text {
+    /* Base styles are handled inline for real-time updates */
+    max-width: 80%;
+    word-wrap: break-word;
+}

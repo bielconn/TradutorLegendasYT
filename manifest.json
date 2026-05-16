@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Tradutor PT-BR",
+  "version": "1.0",
+  "description": "Legendas rápidas e fáceis para YouTube usando Gemini AI.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
