@@ -13,7 +13,10 @@ const defaultSettings = {
     shadowBlur: 0,
     glowSize: 11,
     glowOpacity: 100,
-    geminiKey: ''
+    geminiKey: '',
+    enableDubbing: false,
+    elevenKey: '',
+    elevenVoice: 'pNInz6obpg8nEmeW146i'
 };
 
 const presets = {
@@ -66,6 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
         glowSize: document.getElementById('glow-size'),
         glowOpacity: document.getElementById('glow-opacity'),
         geminiKey: document.getElementById('gemini-key'),
+        enableDubbing: document.getElementById('enable-dubbing'),
+        elevenKey: document.getElementById('eleven-key'),
+        elevenVoice: document.getElementById('eleven-voice'),
         generateBtn: document.getElementById('generate-btn')
     };
 

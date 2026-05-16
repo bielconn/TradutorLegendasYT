@@ -101,6 +101,27 @@
         </section>
 
         <section class="api-section">
+            <h3>Dublagem IA (ElevenLabs)</h3>
+            <div class="toggle-section" style="margin-bottom: 10px; background: transparent; padding: 0; border: none;">
+                <label for="enable-dubbing" style="font-size: 12px; color: var(--text-secondary);">Ativar Dublagem</label>
+                <label class="switch">
+                    <input type="checkbox" id="enable-dubbing">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <label>Chave ElevenLabs (API Key)</label>
+            <input type="password" id="eleven-key" placeholder="Sua ElevenLabs Key...">
+            
+            <label>Voz da Dublagem</label>
+            <select id="eleven-voice" class="full-select">
+                <option value="pNInz6obpg8nEmeW146i">Daniel (Português)</option>
+                <option value="AZnzlk1Xhk8N69v9K88F">Bella (Feminina)</option>
+                <option value="gl5IYH9BInu9BInu9BIn">Gigi (Expressiva)</option>
+            </select>
+        </section>
+
+        <section class="api-section" style="border-top: none;">
             <h3>YouTube Subtitles Generator</h3>
             <label>Chave da API Gemini (Gemini API Key)</label>
             <input type="password" id="gemini-key" placeholder="Insira sua API Key...">

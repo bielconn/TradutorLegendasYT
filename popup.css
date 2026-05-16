@@ -259,13 +259,25 @@ input[type=range]::-webkit-slider-thumb {
     color: var(--text-secondary);
 }
 
-#gemini-key {
+#gemini-key, #eleven-key {
     background: var(--input-bg);
     border: 1px solid #333;
     padding: 10px;
     border-radius: 6px;
     color: white;
     font-size: 12px;
+}
+
+.full-select {
+    width: 100%;
+    background: #000;
+    color: white;
+    border: 1px solid #333;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 4px;
+    outline: none;
 }
 
 .primary-btn {
