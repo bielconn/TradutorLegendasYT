@@ -1,0 +1,4 @@
+node_modules/
+audios/*.wav
+.gemini/
+*.mp4
