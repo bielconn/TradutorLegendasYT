@@ -13,44 +13,19 @@ const defaultSettings = {
     shadowBlur: 0,
     glowSize: 11,
     glowOpacity: 100,
-    geminiKey: ''
+    geminiKey: '',
+    reduceOriginal: true,
+    dubVolume: 80,
+    ttsServerUrl: 'http://localhost:3001'
 };
 
 const presets = {
-    viral: {
-        fontColor: '#ffff00',
-        fontSize: 37,
-        strokeWidth: 3,
-        shadowX: 2,
-        shadowY: 4,
-        shadowBlur: 0,
-        glowSize: 11,
-        glowOpacity: 100
-    },
-    classico: {
-        fontColor: '#ffffff',
-        fontSize: 28,
-        strokeWidth: 0,
-        shadowX: 0,
-        shadowY: 0,
-        shadowBlur: 0,
-        glowSize: 0,
-        glowOpacity: 0
-    },
-    filme: {
-        fontColor: '#ffffff',
-        fontSize: 24,
-        strokeWidth: 1,
-        shadowX: 1,
-        shadowY: 1,
-        shadowBlur: 2,
-        glowSize: 5,
-        glowOpacity: 50
-    }
+    viral: { fontColor: '#ffff00', fontSize: 37, strokeWidth: 3, shadowX: 2, shadowY: 4, shadowBlur: 0, glowSize: 11, glowOpacity: 100 },
+    classico: { fontColor: '#ffffff', fontSize: 28, strokeWidth: 0, shadowX: 0, shadowY: 0, shadowBlur: 0, glowSize: 0, glowOpacity: 0 },
+    filme: { fontColor: '#ffffff', fontSize: 24, strokeWidth: 1, shadowX: 1, shadowY: 1, shadowBlur: 2, glowSize: 5, glowOpacity: 50 }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Elements
     const elements = {
         showButtons: document.getElementById('show-buttons'),
         fontColor: document.getElementById('font-color'),
@@ -66,7 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
         glowSize: document.getElementById('glow-size'),
         glowOpacity: document.getElementById('glow-opacity'),
         geminiKey: document.getElementById('gemini-key'),
-        generateBtn: document.getElementById('generate-btn')
+        reduceOriginal: document.getElementById('reduce-original-audio'),
+        dubVolume: document.getElementById('dub-volume'),
+        ttsServerUrl: document.getElementById('tts-server-url'),
+        dubBtn: document.getElementById('dub-audio-btn'),
+        status: document.getElementById('dubbing-status')
     };
 
     const valDisplays = {
@@ -79,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         shadowY: document.getElementById('val-shadow-y'),
         shadowBlur: document.getElementById('val-shadow-blur'),
         glowSize: document.getElementById('val-glow-size'),
-        glowOpacity: document.getElementById('val-glow-opacity')
+        glowOpacity: document.getElementById('val-glow-opacity'),
+        dubVolume: document.getElementById('val-dub-volume')
     };
 
     // Load settings
@@ -91,36 +71,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     elements[key].value = settings[key];
                 }
-                
-                if (valDisplays[key]) {
-                    valDisplays[key].textContent = settings[key];
-                }
+                if (valDisplays[key]) valDisplays[key].textContent = settings[key];
             }
         });
-        
         updatePresetButtons(settings.preset);
+        checkServerStatus(settings.ttsServerUrl);
     });
 
     // Handle Input Changes
     Object.keys(elements).forEach(key => {
         const el = elements[key];
-        if (!el || key === 'generateBtn') return;
+        if (!el || key === 'dubBtn' || key === 'status') return;
 
         el.addEventListener('input', () => {
             const val = el.type === 'checkbox' ? el.checked : el.value;
-            
-            if (valDisplays[key]) {
-                valDisplays[key].textContent = val;
-            }
+            if (valDisplays[key]) valDisplays[key].textContent = val;
 
             const update = {};
             update[key] = val;
             chrome.storage.local.set(update);
-            
-            // Notify content script
             notifyContentScript({ type: 'UPDATE_SETTINGS', settings: update });
+            
+            if (key === 'ttsServerUrl') checkServerStatus(val);
         });
     });
+
+    async function checkServerStatus(url) {
+        try {
+            const res = await fetch(`${url}/audios`, { method: 'HEAD' });
+            elements.status.textContent = 'Servidor Local: Online';
+            elements.status.className = 'status-indicator ready';
+        } catch (e) {
+            elements.status.textContent = 'Servidor Local: Desconectado';
+            elements.status.className = 'status-indicator error';
+        }
+    }
 
     // Presets
     document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -133,20 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyPreset(name) {
         const presetData = presets[name];
         if (!presetData) return;
-
         chrome.storage.local.set({ ...presetData, preset: name }, () => {
-            // Update UI
             Object.keys(presetData).forEach(key => {
                 if (elements[key]) {
                     elements[key].value = presetData[key];
-                    if (valDisplays[key]) {
-                        valDisplays[key].textContent = presetData[key];
-                    }
+                    if (valDisplays[key]) valDisplays[key].textContent = presetData[key];
                 }
             });
             updatePresetButtons(name);
-            
-            // Notify content script
             notifyContentScript({ type: 'UPDATE_SETTINGS', settings: { ...presetData, preset: name } });
         });
     }
@@ -157,26 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Generate Button
-    elements.generateBtn.addEventListener('click', () => {
-        const key = elements.geminiKey.value;
-        if (!key) {
-            alert('Por favor, insira uma chave de API Gemini.');
-            return;
-        }
-        
-        chrome.storage.local.set({ geminiKey: key }, () => {
-            notifyContentScript({ type: 'GENERATE_SUBTITLES' });
-            window.close(); // Optional: close popup after clicking generate
-        });
+    elements.dubBtn.addEventListener('click', () => {
+        elements.status.textContent = 'Preparando dublagem...';
+        notifyContentScript({ type: 'START_PIPER_DUBBING' });
     });
 
     function notifyContentScript(message) {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, message).catch(err => {
-                    console.log('Content script not ready or not on YouTube');
-                });
+                chrome.tabs.sendMessage(tabs[0].id, message).catch(() => {});
             }
         });
     }
